@@ -1,0 +1,5000 @@
+openapi: 3.0.0
+info:
+  description: |
+    DataBag provides storage for decentralized identity based self-hosting apps.
+    It is intended to support sharing of personal data and hosting group
+    conversations.
+  version: 1.0.5
+  title: DataBag
+  license:
+    name: Apache 2.0
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+tags:
+  - name: status
+    description: websocket endpoint for receiving module events
+  - name: admin
+    description: account creation for portal backend.
+  - name: account
+    description: account configuration for portal backend. supports app attachment
+  - name: authorize
+    description: authorize holder of identity for external service
+  - name: profile
+    description: getting and setting of the public profile
+  - name: alias
+    description: group management for contenting attributes
+  - name: contact
+    description: card management for referencing contacts
+  - name: attribute
+    description: article management associated with profile
+  - name: call 
+    description: coordination of webrtc communication
+paths:
+
+  /status:
+    get:
+      tags:
+        - status
+      description: Websocket endpoint for receiving account status updates
+      operationId: status
+      responses:
+        '200':
+          description: Awaiting announce
+
+  /status/activity:
+    get:
+      tags:
+        - status
+      description: Websocket endpoint for receiving account status and calling events
+      operationId: activity
+      responses:
+        '200':
+          description: Awaiting announce
+    
+  /admin/status:
+    get:
+      tags:
+        - admin
+      description: Check if portal params have been set
+      operationId: get-node-status
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: boolean
+        '500':
+          description: internal server error
+    put:
+      tags:
+        - admin
+      description: Set admin password and node domain
+      operationId: set-node-status
+      security:
+        - basicCredentials: []
+      parameters:
+        - name: domain
+          in: query
+          description: domain of node
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+        '401':
+          description: permission denied
+        '500':
+          description: internal server error
+
+  /admin/access:        
+    put:
+      tags:
+        - admin
+      description: Acquire new session token for admin endpoints
+      operationId: set-admin-session
+      parameters:
+        - name: token
+          in: query
+          description: access token
+          required: true
+          schema:
+            type: string
+        - name: code
+          in: query
+          description: totp code
+          required: false
+          schema:
+            type: string
+      responses:
+        '201':
+          description: generated
+          content:
+            application/json:
+              schema:
+                type: string
+        '401':
+          description: invalid token
+        '405':
+          description: totp code required but not set
+        '429':
+          description: temporarily locked due to too many failures
+        '500':
+          description: internal server error
+
+  /admin/mfauth:
+    get:
+      tags:
+        - admin
+      description: check if multi-factor authentication enabled
+      operationId: get-admin-mfa
+      parameters:
+        - name: token
+          in: query
+          description: session token
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: boolean
+        '401':
+          description: permission denied
+        '500':
+          description: internal server error
+    post:
+      tags:
+        - admin
+      description: Enable multi-factor authentication
+      operationId: add-admin-mfa
+      parameters:
+        - name: token
+          in: query
+          description: session token
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: string
+        '401':
+          description: permission denied
+        '500':
+          description: internal server error
+    put:
+      tags:
+        - admin
+      description: Confirm multi-factor authentication
+      operationId: confirm-admin-mfa
+      parameters:
+        - name: token
+          in: query
+          description: session token
+          required: false
+          schema:
+            type: string
+        - name: code
+          in: query
+          description: totp code generated from secret
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+        '401':
+          description: permission denied
+        '403':
+          description: totp code not correct
+        '405':
+          description: totp code required but not set
+        '429':
+          description: temporarily locked due to too many failures
+        '500':
+          description: internal server error
+    delete:
+      tags:
+        - admin
+      description: Disable multi-factor authentication
+      operationId: remove-admin-mfa
+      parameters:
+        - name: token
+          in: query
+          description: session token
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+        '401':
+          description: permission denied
+        '500':
+          description: internal server error
+  
+  /admin/config:
+    get:
+      tags:
+        - admin
+      description: Get node configuration. Access granted to admin username and password.
+      operationId: get-node-config
+      parameters:
+        - name: token
+          in: query
+          description: session token for admin access
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NodeConfig'
+        '401':
+          description: permission denied
+        '500':
+          description: internal server error
+    put:
+      tags:
+        - admin
+      description: Set node config. Access granted to admin username and password.
+      operationId: set-node-config
+      parameters:
+        - name: token
+          in: query
+          description: session token for admin access
+          required: true
+          schema:
+            type: string
+        - name: setOpenAccess
+          in: query
+          description: if open access should be updated
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: success
+        '401':
+          description: permission denide
+        '500':
+          description: internal server error
+              
+  /admin/accounts:
+    get:
+      tags:
+        - admin
+      description: Get list of accounts hosted on node. Access granted to admin username and password. 
+      operationId: get-node-accounts
+      parameters:
+        - name: token
+          in: query
+          description: session token for admin access
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccountProfile'
+        '401':
+          description: invalid password
+        '404':
+          description: handle not found
+        '500':
+          description: internal server error
+    post:
+      tags:
+        - admin
+      description: Gernerate a url for creating a new account. Access granted to admin username and password.
+      operationId: add-node-account
+      parameters:
+        - name: token
+          in: query
+          description: session token for admin access
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: string
+        '401':
+          description: invalid password
+        '500':
+          description: internal server error
+          
+  /admin/accounts/{accountId}/image:
+    get:
+      tags:
+        - admin
+      description: Get profile image of node account.
+      operationId: get-node-account-image
+      parameters:
+        - name: accountId
+          in: path
+          description: id of account to delete
+          required: true
+          schema:
+            type: string
+        - name: token
+          in: query
+          description: session token for admin access
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/octet-stream: # content specific
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: invalid authentication
+        '404':
+          description: account not found
+        '500':
+          description: internal server error
+         
+  /admin/accounts/{accountId}:
+    delete:
+      tags:
+        - admin
+      description: Remove account from node. Access granted to admin token
+      operationId: remove-node-account
+      parameters:
+        - name: accountId
+          in: path
+          description: id of account to delete
+          required: true
+          schema:
+            type: string
+        - name: token
+          in: query
+          description: session token for admin access
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+        '401':
+          description: invalid authentication
+        '404':
+          description: account not found
+        '500':
+          description: internal server error
+    
+  /admin/accounts/{accountId}/auth:
+    post:
+      tags:
+        - account
+      description: Generate token to reset authentication.
+      operationId: add-account-authentication
+      parameters:
+        - name: token
+          in: query
+          description: session token for admin access
+          required: true
+          schema:
+            type: string
+        - name: accountId
+          in: path
+          description: specified account
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: generated
+          content:
+            application/json:
+              schema:
+                type: string
+        '401':
+          description: invalid password
+        '500':
+          description: internal server error
+
+  /admin/accounts/{accountId}/status: 
+     put:
+      tags:
+        - admin
+      description: Disable account. Access granted to admin token
+      operationId: set-node-account
+      parameters:
+        - name: accountId
+          in: path
+          description: id of account to delete
+          required: true
+          schema:
+            type: string
+        - name: token
+          in: query
+          description: session token for admin access
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: boolean
+        '401':
+          description: invalid authentication
+        '404':
+          description: account not found
+        '500':
+          description: internal server error
+          
+  /admin/accounts/import:
+    post:
+      tags:
+        - admin
+      description: Import an account account from a backup archive. Access granted to the admin username and password.
+      operationId: import account
+      security:
+        - basicAuth: []
+      responses:
+        '201':
+          description: success
+        '401':
+          description: permission denied
+        '406':
+          description: account already imported
+        '500':
+          description: internal server error
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                fileName:
+                  type: string
+                  format: binary
+
+  /account/available:
+    get:
+      tags:
+        - account
+      description: Check if any public accounts are available
+      operationId: get-account-available
+      responses:
+        '200':
+          description: available public accounts
+          content:
+            application/json:
+              schema:
+                type: integer
+                format: uint32
+        '500':
+          description: internal server error
+          
+  /account/username:
+    get:
+      tags:
+        - account
+      description: Check if username is available. Access granted account reset token or account create token.
+      operationId: get-account-username
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: name
+          in: query
+          description: username to check 
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: boolean
+        '401':
+          description: permission denied
+        '500':
+          description: internal server error
+          
+  /account/flag/{guid}:
+    get:
+      tags:
+        - account
+      description: Report record for admin review.
+      operationId: add-flag
+      parameters:
+        - name: guid
+          in: path
+          description: guid of account holder 
+          required: true
+          schema:
+            type: string
+        - name: channel
+          in: query
+          description: channel of or reported record 
+          required: false
+          schema:
+            type: string
+        - name: topic
+          in: query
+          description: topic id of reported record 
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Profile'
+        '401':
+          description: permission denied
+        '500':
+          description: internal server error
+          
+  /account/listing:
+    get:
+      tags:
+        - account
+      description: Get profile of searchable accounts. Endpoint is publically accessible.
+      operationId: get-account-listing
+      parameters:
+        - name: filter
+          in: query
+          description: filter handles by text 
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Profile'
+        '401':
+          description: permission denied
+        '500':
+          description: internal server error
+          
+  /account/listing/{guid}/image:
+    get:
+      tags:
+        - account
+      description: Get profile image of searchable accounts. Endpoint is publically accessible.
+      operationId: get-account-listing-image
+      parameters:
+        - name: guid
+          in: path
+          description: filter for specified guid 
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/octet-stream: # content specific
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: permission denied
+        '500':
+          description: internal server error
+           
+  /account/listing/{guid}/message:
+    get:
+      tags:
+        - account
+      description: Get profile message of searchable account. Endpoint is publically accessible.
+      operationId: get-account-listing-message
+      parameters:
+        - name: guid
+          in: path
+          description: filter for specified guid 
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataMessage'
+        '401':
+          description: permission denied
+        '500':
+          description: internal server error
+          
+
+  /account/token:
+    get:
+      tags:
+        - account
+      description: Check if account reset token or account create token is valid. Access granted to valid create or reset token.
+      operationId: get-account-token
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: string
+        '401':
+          description: permission denied
+        '500':
+          description: internal server error
+          
+  /account/status:
+    get:
+      tags:
+        - account
+      description: Get disabled status of account. Authorized to account username and password.
+      operationId: get-account-status
+      parameters:
+        - name: agent
+          in: query
+          description: agent token
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountStatus'
+        '401':
+          description: authentication error
+        '500':
+          description: internal server error
+           
+  /account/notification:
+    put:
+      tags:
+        - account
+      description: Set whether account should receive push notifications.
+      operationId: set-account-notification
+      parameters:
+        - name: agent
+          in: query
+          description: agent token
+          required: false
+          schema:
+            type: string
+        - name: deviceToken
+          in: query
+          description: deviceToken for push notification
+          required: false
+          schema:
+            type: string
+        - name: webEndpoint
+          in: query
+          description: webpush endpoint
+          required: false
+          schema:
+            type: string
+        - name: webPublicKey
+          in: query
+          description: webpush public key
+          required: false
+          schema:
+            type: string
+        - name: webAuth
+          in: query
+          description: webpush authorization
+          required: false
+          schema:
+            type: string
+        - name: pushType
+          in: query
+          description: unifiedpush (up) or firebase (fcm), or webpush (web)
+          required: false
+          schema:
+            type: string
+      responses:
+        '201':
+          description: success
+        '401':
+          description: permission denied
+        '405':
+          description: failed to confirm
+        '500':
+          description: internal server error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: boolean
+
+  /account/seal:
+    put:
+      tags:
+        - account
+      description: Set sealing key for account.
+      operationId: set-account-seal
+      parameters:
+        - name: agent
+          in: query
+          description: agent token
+          required: false
+          schema:
+            type: string
+      responses:
+        '201':
+          description: success
+        '401':
+          description: permission denied
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Seal'
+              
+  /account/searchable:
+    put:
+      tags:
+        - account
+      description: Set whether account is publicly listed.
+      operationId: set-account-seachable
+      parameters:
+        - name: agent
+          in: query
+          description: agent token
+          required: false
+          schema:
+            type: string
+      responses:
+        '201':
+          description: success
+        '401':
+          description: permission denied
+        '405':
+          description: failed to confirm
+        '500':
+          description: internal server error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: boolean
+
+  /account/mfauth:
+    post:
+      tags:
+        - account
+      description: Enable multi-factor authentication
+      operationId: add-mfa
+      parameters:
+        - name: agent
+          in: query
+          description: agent token
+          required: false
+          schema:
+            type: string
+      responses:
+        '201':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: string
+        '401':
+          description: permission denied
+        '500':
+          description: internal server error
+    put:
+      tags:
+        - account
+      description: Confirm multi-factor authentication
+      operationId: confirm-mfa
+      parameters:
+        - name: agent
+          in: query
+          description: agent token
+          required: false
+          schema:
+            type: string
+        - name: code
+          in: query
+          description: totp code generated from secret
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+        '401':
+          description: permission denied
+        '403':
+          description: totp code not correct
+        '405':
+          description: totp code required but not set
+        '429':
+          description: temporarily locked due to too many failures
+        '500':
+          description: internal server error
+    delete:
+      tags:
+        - account
+      description: Disable multi-factor authentication
+      operationId: remove-mfa
+      parameters:
+        - name: agent
+          in: query
+          description: agent token  
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+        '401':
+          description: permission denied
+        '500':
+          description: internal server error
+
+  /account/login:
+    put:
+      tags:
+        - account
+      description: Reset account login credentials
+      operationId: set-account-login
+      security:
+        - basicAuth: []
+      responses:
+        '201':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: string
+        '401':
+          description: invalid password
+        '404':
+          description: unknown portal
+        '500':
+          description: internal server error
+                      
+  /account/profile:
+    post:
+      tags:
+        - account
+      description: Add a new account. Basic auth will be used for the accounts username and password. Access granted to valid create account token.
+      operationId: add-account
+      security:
+        - bearerAuth: []
+        - basicCredentials: []
+      responses:
+        '201':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '400':
+          description: invalid handle or password
+        '401':
+          description: permission denied
+        '500':
+          description: internal server error
+    delete:
+      tags:
+        - account
+      description: Delete account. Access granted to valid create account token.
+      operationId: remove-account
+      security:
+        - basicAuth: []
+      responses:
+        '201':
+          description: successful operation
+        '401':
+          description: permission denied
+        '500':
+          description: internal server error
+                
+  /account/assets/{assetId}:
+    get:
+      tags:
+        - account
+      description: Get asset assigned to an account. The endpoint supports byte-range requests and responds with the content-type set appropriatly. Access granted to the app tokens of the account holder and in the case of non-original assets, the contact token for accounts with which the article is shared.
+      operationId: get-account-asset
+      security:
+        - basicAuth: []
+      parameters:
+        - name: assetId
+          in: path
+          description: specified asset id 
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/octet-stream: #asset specific
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: permission denied
+        '404':
+          description: asset or article not found
+        '500':
+          description: internal server error
+          
+  /account/auth:
+    put:
+      tags:
+        - account
+      description: Apply account reset token to set handle and password. Basic auth will be used for new login and password. Access granted to valid reset token.
+      operationId: set-account-authentication
+      security:
+        - bearerAuth: []
+        - basicAuth: []
+      responses:
+        '201':
+          description: success
+        '401':
+          description: permission denied
+        '500':
+          description: internal server error
+          
+  /account/access:
+    put:
+      tags:
+        - account
+      description: Apply reset token to acquire app token for access.
+      operationId: set-account-access
+      parameters:
+        - name: token
+          in: query
+          description: access token for connecting to accounts
+          required: false
+          schema:
+            type: string
+        - name: appName
+          in: query
+          description: name of connecting app
+          required: false
+          schema:
+            type: string
+        - name: appVersion
+          in: query
+          description: version of connecting app
+          required: false
+          schema:
+            type: string
+        - name: platform
+          in: query
+          description: device platform
+          required: false
+          schema:
+            type: string
+        - name: deviceToken
+          in: query
+          description: deviceToken for push notification
+          required: false
+          schema:
+            type: string
+        - name: notifications
+          in: query
+          description: push notifications to receive
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        '201':
+          description: generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginAccess'
+        '401':
+          description: permission denied
+        '500':
+          description: internal server error
+          
+  /account/node:
+    put:
+      tags:
+        - account
+      description: Set forwarding address after export/import has completed. Access granted to valid reset token.
+      operationId: set-account-node
+      security:        
+        - basicAuth: []
+      responses:
+        '201':
+          description: success
+        '401':
+          description: permission denied
+        '405':
+          description: failed to confirm
+        '500':
+          description: internal server error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: string
+          
+  /account/apps:
+    get:
+      tags:
+        - account
+      description: Get list of attached apps to account. Access granted to account's username and password.
+      operationId: get-account-apps
+      security:
+        - basicAuth: []
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/App'
+        '401':
+          description: permission denied
+        '500':
+          description: internal server error
+    post:
+      tags:
+        - account
+      description: Generate token to attach an app to the account. Access granted to account's username and password.
+      operationId: add-account-app
+      security:
+        - basicAuth: []
+      parameters:
+        - name: code
+          in: query
+          description: totp code
+          required: false
+          schema:
+            type: string
+        - name: appName
+          in: query
+          description: name of connecting app
+          required: false
+          schema:
+            type: string
+        - name: appVersion
+          in: query
+          description: version of connecting app
+          required: false
+          schema:
+            type: string
+        - name: platform
+          in: query
+          description: device platform
+          required: false
+          schema:
+            type: string
+        - name: deviceToken
+          in: query
+          description: deviceToken for push notification
+          required: false
+          schema:
+            type: string
+        - name: pushType
+          in: query
+          description: unifiedpush (up) or firebase (fcm), default fcm
+          required: false
+          schema:
+            type: string
+        - name: notifications
+          in: query
+          description: push notifications to receive
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        '201':
+          description: generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginAccess'
+        '401':
+          description: invalid token
+        '406':
+          description: app limit reached
+        '405':
+          description: totp code required but not set
+        '410':
+          description: account disabled
+        '429':
+          description: temporarily locked due to too many failures
+        '500':
+          description: internal server error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppData'
+    delete:
+      tags:
+        - account
+      description: Remove an app entry to achieve logout. Access granted to agent token.
+      operationId: remove-agent-token
+      parameters:
+        - name: agent
+          in: query
+          description: agent token for account access
+          required: true
+          schema:
+            type: string
+        - name: all
+          in: query
+          description: whether all app tokens should be cleared
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: ok
+        '401':
+          description: invalid token
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+          
+  /account/apps/{appId}:
+    delete:
+      tags:
+        - account
+      description: Get list of attached apps. Access granted to account's username and password.
+      operationId: remove-account-app
+      security:
+        - basicAuth: []
+      parameters:
+        - name: appId
+          in: path
+          description: specified app id 
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+        '401':
+          description: invalid password
+        '404':
+          description: app not found
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+                 
+  /account/export:
+    put:
+      tags:
+        - account
+      description: Export account from node. Account is automatically disabled afterwards. Authorized to account username and password.
+      operationId: set-account-export
+      security:
+        - basicAuth: []
+      responses:
+        '201':
+          description: success
+        '401':
+          description: permission denied
+        '500':
+          description: internal server error
+          
+  /authorize:
+    put:
+      tags:
+        - authorize
+      description: Retrieve an authenticate data messaging verifying the account holder is accepting the action referenced by the token.
+      operationId: authorize 
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataMessage'
+        '401':
+          description: permission denied
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: string
+          
+  /profile:
+    get:
+      tags:
+        - profile
+      description: Get profile of accunt. Access granted to app token of account holder.
+      operationId: get-profile
+      parameters:
+        - name: agent
+          in: query
+          description: agent token
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '401':
+          description: permission denied
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+    delete:
+      tags:
+        - profile
+      description: Delete own account.
+      operationId: remove-profile
+      parameters:
+        - name: agent
+          in: query
+          description: agent token
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+        '401':
+          description: permission denied
+        '500':
+          description: internal server error
+          
+  /profile/data:
+    put:
+      tags:
+        - profile
+      description: Set profile data. Access granted to app tokens of account holder.
+      operationId: set-profile
+      parameters:
+        - name: agent
+          in: query
+          description: agent token 
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '401':
+          description: permission denied
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileData'
+          
+  /profile/image:
+    get:
+      tags:
+        - profile
+      description: Download base64 decoded data of profile image. Access granted to app tokens of account holder.
+      operationId: get-profile-image
+      parameters:
+        - name: agent
+          in: query
+          description: agent token 
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/octet-stream: # content specific
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: permission denied
+        '405':
+          description: invalid image
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+    put:
+      tags:
+        - profile
+      description: Set base64 encode image data for profile. Access granted to app tokens of account holder.
+      operationId: set-profile-image
+      parameters:
+        - name: agent
+          in: query
+          description: agent token 
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '401':
+          description: permission denied
+        '405':
+          description: invalid image
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: string
+          
+  /profile/message:
+    get:
+      tags:
+        - profile
+      description: Get a profile data message. Access granted to app token of account holder or contact token of connected contact.
+      operationId: get-profile-message
+      parameters:
+        - name: agent
+          in: query
+          description: agent token 
+          required: false
+          schema:
+            type: string
+        - name: contact
+          in: query
+          description: contact token 
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataMessage'
+        '401':
+          description: permission denied
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+          
+  /alias/groups:
+    get:
+      tags:
+        - alias
+      description: Get groups for sharing. Access granted to app tokens of the account holder.
+      operationId: get-groups
+      parameters:
+        - name: agent
+          in: query
+          description: agent token
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation          
+          headers:
+            X-Group-Revision:
+              schema:
+                type: integer
+                format: int64
+              description: current group revision
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Group'
+        '401':
+          description: invalid token
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+    post:
+      tags:
+        - alias
+      description: Add a group for sharing. Access granted to app tokens of account holder.
+      operationId: add-group
+      parameters:
+        - name: agent
+          in: query
+          description: agent token
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+        '401':
+          description: permission denied
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Subject'
+         
+  /alias/groups/{groupId}/subject/{field}:
+    get:
+      tags:
+        - alias
+      description: Base64 decode and download specified field from the groups's subject. Access granted to app token of account holder.
+      operationId: get-group-subject-field
+      parameters:
+        - name: groupId
+          in: path
+          description: specified group id
+          required: true
+          schema:
+            type: string
+        - name: field
+          in: path
+          description: field from subject to base64 decode and download
+          required: true
+          schema:
+            type: string
+        - name: agent
+          in: query
+          description: agent token
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: permission denied
+        '404':
+          description: field, article not found
+        '405':
+          description: invalid field
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+ 
+  /alias/groups/{groupId}/subject:
+    put:
+      tags:
+        - alias
+      description: Update group description for sharing. Access granted to app tokens of account holder.
+      operationId: set-group-subject
+      parameters:
+        - name: groupId
+          in: path
+          description: specified group id 
+          required: true
+          schema:
+            type: string
+        - name: agent
+          in: query
+          description: agent token
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+        '401':
+          description: permission denied
+        '404':
+          description: group not found
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Subject'
+    delete:
+      tags:
+        - alias
+      description: Remove sharing group
+      operationId: remove-group
+      parameters:
+        - name: groupId
+          in: path
+          description: specified group id 
+          required: true
+          schema:
+            type: string
+        - name: agent
+          in: query
+          description: agent token
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+        '401':
+          description: permission denied
+        '404':
+          description: group not found
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+          
+  /contact/cards:
+    get:
+      tags:
+        - contact
+      description: Get list of cards. Access granted to app tokens of account holder.
+      operationId: get-cards
+      parameters:
+        - name: revision
+          in: query
+          description: only return updated cards since specified revision
+          required: false
+          schema:
+            type: string
+        - name: agent
+          in: query
+          description: agent token
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          headers:
+            X-Card-Revision:
+              schema:
+                type: integer
+                format: int64
+              description: current card revision
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Card'
+        '401':
+          description: permission denied
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+    post:
+      tags:
+        - contact
+      description: Add a contact card. Access granted to app tokens of account holder.
+      operationId: add-card
+      parameters:
+        - name: agent
+          in: query
+          description: agent token
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataMessage'
+        '400':
+          description: invalid data message
+        '401':
+          description: permission denied
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+          
+  /contact/cards/{cardId}:
+    get:
+      tags:
+        - contact
+      description: Get specified card. Access granted to app tokens of account holder.
+      operationId: get-card
+      parameters:
+        - name: cardId
+          in: path
+          description: specified card id 
+          required: true
+          schema:
+            type: string
+        - name: agent
+          in: query
+          description: agent token
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Card'
+        '401':
+          description: permission denied
+        '404':
+          description: card not found
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+    delete:
+      tags:
+        - contact
+      description: Remove card entry. Access granted to app tokens of account holder.
+      operationId: remove-card
+      parameters:
+        - name: cardId
+          in: path
+          description: specified card id 
+          required: true
+          schema:
+            type: string
+        - name: agent
+          in: query
+          description: agent token
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+        '401':
+          description: permission denied
+        '404':
+          description: card not found
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+          
+  /contact/cards/{cardId}/status:
+    put:
+      tags:
+        - contact
+      description: Updated connected status of contact. Access granted to app tokens of account holder.
+      operationId: set-card-status
+      parameters:
+        - name: cardId
+          in: path
+          description: specified card id 
+          required: true
+          schema:
+            type: string
+        - name: agent
+          in: query
+          description: agent token
+          required: false
+          schema:
+            type: string
+        - name: token
+          in: query
+          description: token for accessing card
+          required: false # required for connected 
+          schema:
+            type: string
+        - name: profileRevision
+          in: query
+          description: profile revision of contact
+          required: false # required for connected 
+          schema:
+            type: string
+        - name: articleRevision
+          in: query
+          description: article revision of contact
+          required: false # required for connected 
+          schema:
+            type: string
+        - name: channelRevision
+          in: query
+          description: channel revision of contact
+          required: false # required for connected 
+          schema:
+            type: string
+        - name: viewRevision
+          in: query
+          description: view revision of contact
+          required: false # required for connected 
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardDetail'
+        '401':
+          description: permission denied
+        '404':
+          description: card not found
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: string
+              enum: [ pending, confirmed, connecting, connected ]
+          
+  /contact/cards/{cardId}/openMessage:
+    get:
+      tags:
+        - contact
+      description: Get message for connecting to other contacts. Access granted to app tokens for account holder.
+      operationId: get-open-message
+      parameters:
+        - name: cardId
+          in: path
+          description: specified card id 
+          required: true
+          schema:
+            type: string
+        - name: agent
+          in: query
+          description: agent token
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataMessage'
+        '401':
+          description: permission denied
+        '404':
+          description: card not found
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+          
+  /contact/openMessage:
+    put:
+      tags:
+        - contact
+      description: Set message for connecting to a contact. If card has not already been added, the card will be created in the pending state. Access granted to public.
+      operationId: set-open-message
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactStatus'
+        '400':
+          description: invalid data message
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DataMessage'
+          
+  /contact/cards/{cardId}/closeMessage:
+    get:
+      tags:
+        - contact
+      description: Get message for closing connection with contact. Access granted to app tokens for account holder.
+      operationId: get-close-message
+      parameters:
+        - name: cardId
+          in: path
+          description: specified card id 
+          required: true
+          schema:
+            type: string
+        - name: agent
+          in: query
+          description: agent token
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataMessage'
+        '401':
+          description: permission denied
+        '404':
+          description: card not found
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+          
+  /contact/closeMessage:
+    put:
+      tags:
+        - contact
+      description: Set message for closing card connection. Access granted to public.
+      operationId: set-close-message
+      responses:
+        '200':
+          description: successful operation
+        '400':
+          description: invalid data message
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DataMessage'
+          
+  /contact/cards/{cardId}/profile:
+    get:
+      tags:
+        - contact
+      description: Get profile of card entry. Access granted to app tokens of account holder.
+      operationId: get-card-profile
+      parameters:
+        - name: cardId
+          in: path
+          description: specified card id 
+          required: true
+          schema:
+            type: string
+        - name: agent
+          in: query
+          description: agent token
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardProfile'
+        '401':
+          description: permission denied
+        '404':
+          description: not found
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+    put:
+      tags:
+        - contact
+      description: Set profile of card entry. Access granted to app tokens of account holder.
+      operationId: set-card-profile
+      parameters:
+        - name: cardId
+          in: path
+          description: specified card id 
+          required: true
+          schema:
+            type: string
+        - name: agent
+          in: query
+          description: agent token
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataMessage'
+        '401':
+          description: permission denied
+        '404':
+          description: card not found
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Profile'
+          
+  /contact/cards/{cardId}/profile/image:
+    get:
+      tags:
+        - contact
+      description: Get image of card profile. Access granted to app tokens of account holder.
+      operationId: get-card-profile-image
+      parameters:
+        - name: cardId
+          in: path
+          description: specified card id 
+          required: true
+          schema:
+            type: string
+        - name: agent
+          in: query
+          description: agent token
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/octet-stream: #asset specific
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: permission denied
+        '404':
+          description: card not found
+        '405':
+          description: invalid image
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+          
+  /contact/cards/{cardId}/detail:
+    get:
+      tags:
+        - contact
+      description: Get specified card detail. Access granted to app tokens for account holder.
+      operationId: get-card-detail
+      parameters:
+        - name: cardId
+          in: path
+          description: specified card id 
+          required: true
+          schema:
+            type: string
+        - name: agent
+          in: query
+          description: agent token
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardDetail'
+        '401':
+          description: permission denied
+        '404':
+          description: card not found
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+          
+  /contact/cards/{cardId}/notes:
+    put:
+      tags:
+        - contact
+      description: Update card notes for specified card. Access granted to app tokens for account holder.
+      operationId: set-card-notes
+      parameters:
+        - name: cardId
+          in: path
+          description: specified card id 
+          required: true
+          schema:
+            type: string
+        - name: agent
+          in: query
+          description: agent token
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardDetail'
+        '401':
+          description: permission denied
+        '404':
+          description: card not found
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: string
+    delete:
+      tags:
+        - contact
+      description: Clear notes for specified card. Access granted to app tokens of account holder.
+      operationId: clear-card-notes
+      parameters:
+        - name: cardId
+          in: path
+          description: specified card id 
+          required: true
+          schema:
+            type: string
+        - name: agent
+          in: query
+          description: agent token
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardDetail'
+        '401':
+          description: permission denied
+        '404':
+          description: card not found
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+            
+  /contact/cards/{cardId}/groups/{groupId}:
+    put:
+      tags:
+        - contact
+      description: Set sharing group for contact. Access granted to app tokens for account holder. 
+      operationId: set-card-group
+      parameters:
+        - name: cardId
+          in: path
+          description: specified card id 
+          required: true
+          schema:
+            type: string
+        - name: groupId
+          in: path
+          description: specified group id 
+          required: true
+          schema:
+            type: string
+        - name: agent
+          in: query
+          description: agent token
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardDetail'
+        '401':
+          description: permission denied
+        '404':
+          description: card or group not found
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+    delete:
+      tags:
+        - contact
+      description: Clear sharing group for card. Access granted to app tokens for account holder.
+      operationId: clear-card-group
+      parameters:
+        - name: cardId
+          in: path
+          description: specified card id 
+          required: true
+          schema:
+            type: string
+        - name: groupId
+          in: path
+          description: specified share id 
+          required: true
+          schema:
+            type: string
+        - name: agent
+          in: query
+          description: agent token
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CardDetail'
+        '401':
+          description: permission denied
+        '404':
+          description: card or group not found
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+          
+  /contact/profile/revision:
+    put:
+      tags:
+        - contact
+      description: Set profile revision for contact. This is intend to be invoked automatically anytime a contact updates their profile. Access granted to contact tokens.
+      operationId: set-profile-revision
+      parameters:
+        - name: contact
+          in: query
+          description: contact token
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: revision set
+        '401':
+          description: not authorized
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: integer
+              format: int64
+        
+  /contact/article/revision:
+    put:
+      tags:
+        - contact
+      description: Set artcile revision for contact. This is intend to be invoked automatically anytime a contact updates their content or sharing. Access granted to contact tokens.
+      operationId: set-article-revision
+      parameters:
+        - name: contact
+          in: query
+          description: contact token
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: revision set
+        '401':
+          description: not authorized
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: integer
+              format: int64
+              
+  /contact/channel/revision:
+    put:
+      tags:
+        - contact
+      description: Set channel revision for contact. This is intend to be invoked automatically anytime a contact updates their content or sharing. Access granted to contact tokens.
+      operationId: set-channel-revision
+      parameters:
+        - name: contact
+          in: query
+          description: contact token
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: revision set
+        '401':
+          description: not authorized
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: integer
+              format: int64
+              
+  /contact/view/revision:
+    put:
+      tags:
+        - contact
+      description: Set view revision for contact. This is intend to be invoked automatically anytime a contact updates their content or sharing. Access granted to contact tokens.
+      operationId: set-view-revision
+      parameters:
+        - name: contact
+          in: query
+          description: contact token
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: revision set
+        '401':
+          description: not authorized
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: integer
+              format: int64
+
+  /contact/notification:
+    post:
+      tags:
+        - contact
+      description: Inform contact of a push notification event
+      operationId: set-push-event
+      parameters:
+        - name: contact
+          in: query
+          description: contact token
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: event set
+        '401':
+          description: not authorized
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: string
+              
+  /attribute/articles:
+    get:
+      tags:
+        - attribute
+      description: Get article slots that should be updated based on revisions. Access granted to account token or contact token. When the request is made with a contact token the account view revision will be added to the block revision.
+      operationId: get-articles
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: viewRevision
+          in: query
+          description: view revision from which attribute revision applies 
+          required: false
+          schema:
+            type: string
+        - name: articleRevision
+          in: query
+          description: return updated articles since revision 
+          required: false
+          schema:
+            type: string
+        - name: types
+          in: query
+          description: return only articles of specified types
+          required: false
+          schema:
+            type: string
+        - name: agent
+          in: query
+          description: agent token
+          required: false
+          schema:
+            type: string
+        - name: contact
+          in: query
+          description: contact token
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          headers:
+            X-View-Revision:
+              schema:
+                type: integer
+                format: int64
+              description: current view revision
+            X-Article-Revision:
+              schema:
+                type: integer
+                format: int64
+              description: current article revision
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Article'
+        '401':
+          description: permission denied
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+    post:
+      tags:
+        - attribute
+      description: Add a content article. Access granted to app token of the account holder.
+      operationId: add-article
+      parameters:
+        - name: agent
+          in: query
+          description: agent token
+          required: false
+          schema:
+            type: string
+      responses:
+        '201':
+          description: entry created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Article'
+        '401':
+          description: permission denied
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Subject'
+          
+  /attribute/articles/{articleId}:
+    delete:
+      tags:
+        - attribute
+      description: Remove specified article. Access granted to app token of account holder.
+      operationId: remove-article
+      parameters:
+        - name: articleId
+          in: path
+          description: specified article id 
+          required: true
+          schema:
+            type: string
+        - name: agent
+          in: query
+          description: agent token
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+        '401':
+          description: invalid password
+        '404':
+          description: article not found
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+  
+  /attribute/articles/{articleId}/subject/{field}:
+    get:
+      tags:
+        - attribute
+      description: Base64 decode and download specified field from the article's subject. Access granted to app token of account holder or contact token of account the article is shared with.
+      operationId: get-article-subject-field
+      parameters:
+        - name: articleId
+          in: path
+          description: specified article id 
+          required: true
+          schema:
+            type: string
+        - name: field
+          in: path
+          description: field from subject to base64 decode and download 
+          required: true
+          schema:
+            type: string
+        - name: agent
+          in: query
+          description: agent token
+          required: false
+          schema:
+            type: string
+        - name: contact
+          in: query
+          description: contact token
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: permission denied
+        '404':
+          description: field, article not found
+        '405':
+          description: invalid field
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+          
+  /attribute/articles/{articleId}/subject:
+    put:
+      tags:
+        - attribute
+      description: Set subject for article. Access granted to app token of account holder.
+      operationId: set-article-subject
+      parameters:
+        - name: articleId
+          in: path
+          description: specified article id 
+          required: true
+          schema:
+            type: string
+        - name: agent
+          in: query
+          description: agent token
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+        '401':
+          description: permission denied
+        '404':
+          description: article not found
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Subject'
+                  
+  /attribute/articles/{articleId}/groups/{groupId}:
+    put:
+      tags:
+        - attribute
+      description: Set group for articles. Access granted to app tokens for account holder. 
+      operationId: set-article-group
+      parameters:
+        - name: articleId
+          in: path
+          description: specified article id 
+          required: true
+          schema:
+            type: string
+        - name: groupId
+          in: path
+          description: specified group id 
+          required: true
+          schema:
+            type: string
+        - name: agent
+          in: query
+          description: agent token
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Article'
+        '401':
+          description: permission denied
+        '404':
+          description: card or group not found
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+    delete:
+      tags:
+        - attribute
+      description: Clear sharing group for article. Access granted to app tokens for account holder.
+      operationId: clear-article-group
+      parameters:
+        - name: articleId
+          in: path
+          description: specified card id 
+          required: true
+          schema:
+            type: string
+        - name: groupId
+          in: path
+          description: specified share id 
+          required: true
+          schema:
+            type: string
+        - name: agent
+          in: query
+          description: agent token
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Article'
+        '401':
+          description: permission denied
+        '404':
+          description: card or group not found
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+          
+          
+  /content/channels:
+    get:
+      tags:
+        - content
+      description: Get channel slots. If revision set detail fields omittied in response
+      operationId: get-channels
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: viewRevision
+          in: query
+          description: view revision from which content revision applies 
+          required: false
+          schema:
+            type: string
+        - name: channelRevision
+          in: query
+          description: return updated channels since revision 
+          required: false
+          schema:
+            type: string
+        - name: types
+          in: query
+          description: return only channels of specified types
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+          headers:
+            X-View-Revision:
+              schema:
+                type: integer
+                format: int64
+              description: current view revision
+            X-Channel-Revision:
+              schema:
+                type: integer
+                format: int64
+              description: current channel revision
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Channel'
+        '401':
+          description: permission denied
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+    post:
+      tags:
+        - content
+      description: Add a channel. 
+      operationId: add-channel
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: entry created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Channel'
+        '401':
+          description: permission denied
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChannelParams'
+          
+  /content/channels/{channelId}/detail:
+    get:
+      tags:
+        - content
+      description: Get details of channel.
+      operationId: get-channel-detail
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: channelId
+          in: path
+          description: specified channel id 
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChannelDetail'
+        '401':
+          description: invalid password
+        '404':
+          description: channel not found
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+  
+  /content/channels/{channelId}/summary:
+    get:
+      tags:
+        - content
+      description: Get summary of channel.
+      operationId: get-channel-summary
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: channelId
+          in: path
+          description: specified channel id 
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChannelSummary'
+        '401':
+          description: invalid password
+        '404':
+          description: channel not found
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+          
+  /content/channels/{channelId}:
+    delete:
+      tags:
+        - content
+      description: Remove specified channel or membership. When invoked by account holder, channel is removed. When invoked by member, membership is removed.
+      operationId: remove-channel
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: channelId
+          in: path
+          description: specified channel id 
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+        '401':
+          description: invalid password
+        '404':
+          description: channel not found
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+ 
+  /content/channels/{channelId}/notification:
+    get:
+      tags:
+        - content
+      description: Get notification enabled state for the specified channel
+      operationId: get-channel-notifications
+      parameters:
+        - name: channelId
+          in: path
+          description: specified channel id 
+          required: true
+          schema:
+            type: string
+        - name: agent
+          in: query
+          description: access token granted to agent
+          required: true
+          schema:
+            type: string
+        - name: contact
+          in: query
+          description: access token granted to contact
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: boolean
+        '401':
+          description: permission denied
+        '404':
+          description: field, channel not found
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+    put:
+      tags:
+        - content
+      description: Set notification enabled state for the specified channel
+      operationId: set-channel-notifications
+      parameters:
+        - name: channelId
+          in: path
+          description: specified channel id 
+          required: true
+          schema:
+            type: string
+        - name: agent
+          in: query
+          description: access token granted to agent
+          required: true
+          schema:
+            type: string
+        - name: contact
+          in: query
+          description: access token granted to contact
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+        '401':
+          description: permission denied
+        '404':
+          description: field, channel not found
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: boolean
+        
+  /content/channels/{channelId}/subject/{field}:
+    get:
+      tags:
+        - content
+      description: Base64 decode and download specified field from the channel's subject. Access granted to app token of account holder or contact token of account the channel is shared with.
+      operationId: get-channel-subject-field
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: channelId
+          in: path
+          description: specified channel id 
+          required: true
+          schema:
+            type: string
+        - name: field
+          in: path
+          description: field from subject to base64 decode and download 
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: permission denied
+        '404':
+          description: field, channel not found
+        '405':
+          description: invalid field
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+          
+  /content/channels/{channelId}/subject:
+    put:
+      tags:
+        - content
+      description: Set subject for channel. Access granted to app token of account holder.
+      operationId: set-channel-subject
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: channelId
+          in: path
+          description: specified channel id 
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Channel'
+        '401':
+          description: permission denied
+        '404':
+          description: channel not found
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Subject'
+           
+  /content/channels/{channelId}/groups/{groupId}:
+    put:
+      tags:
+        - content
+      description: Set group for read access to channel. Access granted to app tokens for account holder. 
+      operationId: set-channel-group
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: channelId
+          in: path
+          description: specified channel id 
+          required: true
+          schema:
+            type: string
+        - name: groupId
+          in: path
+          description: specified group id 
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Channel'
+        '401':
+          description: permission denied
+        '404':
+          description: card or group not found
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+    delete:
+      tags:
+        - content
+      description: Clear read access to channel for group. Access granted to app tokens for account holder.
+      operationId: clear-channel-group
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: channelId
+          in: path
+          description: specified card id 
+          required: true
+          schema:
+            type: string
+        - name: groupId
+          in: path
+          description: specified share id 
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Channel'
+        '401':
+          description: permission denied
+        '404':
+          description: card or group not found
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+          
+  /content/channels/{channelId}/cards/{cardId}:
+    put:
+      tags:
+        - content
+      description: Set card for write access to channel. Access granted to app tokens for account holder. 
+      operationId: set-channel-card
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: channelId
+          in: path
+          description: specified channel id 
+          required: true
+          schema:
+            type: string
+        - name: cardId
+          in: path
+          description: specified card id 
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Channel'
+        '401':
+          description: permission denied
+        '404':
+          description: card or group not found
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+    delete:
+      tags:
+        - content
+      description: Clear write access to channel for card. Access granted to app tokens for account holder.
+      operationId: clear-channel-card
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: channelId
+          in: path
+          description: specified channel id 
+          required: true
+          schema:
+            type: string
+        - name: cardId
+          in: path
+          description: specified card id 
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Channel'
+        '401':
+          description: permission denied
+        '404':
+          description: card or group not found
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+          
+  /content/channels/{channelId}/topics:
+    get:
+      tags:
+        - content
+      description: Get channel topic slots. If revision set, detail fields omitted in response. Staggered loading supported through sequnce marker. Initially count can be used to limit the topics returned. The sequence marker returned in the header must be used in subsequent queries for the same topic window.
+      operationId: get-channel-topics
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: channelId
+          in: path
+          description: specified channel id
+          required: true
+          schema:
+            type: string
+        - name: revision
+          in: query
+          description: return updated topics since revision 
+          required: false
+          schema:
+            type: integer
+            format: int64
+        - name: count
+          in: query
+          description: limit number of topics from latest when revision not set
+          required: false
+          schema:
+            type: integer
+            format: int64
+        - name: begin
+          in: query
+          description: return topics after and including sequence marker
+          required: false
+          schema:
+            type: integer
+            format: int64
+        - name: end
+          in: query
+          description: return topics before and not including sequence marker
+          required: false
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: successful operation
+          headers:
+            Topic-Revision:
+              schema:
+                type: integer
+                format: int64
+              description: current topic revision
+            Topic-Marker:
+              schema:
+                type: integer
+                format: int64
+              description: sequnce marker of first topic when count set
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Topic'
+        '401':
+          description: permission denied
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+    post:
+      tags:
+        - content
+      description: Add a topic to channel channel. 
+      operationId: add-channel-topic
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: channelId
+          in: path
+          description: specified channel id
+          required: true
+          schema:
+            type: string
+        - name: confirm
+          in: query
+          description: set if intial state is confirmed
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '201':
+          description: entry created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Topic'
+        '401':
+          description: permission denied
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Subject'
+          
+  /content/channels/{channelId}/topics/{topicId}:
+    delete:
+      tags:
+        - content
+      description: Remove specified channel. Access granted to app token of account holder.
+      operationId: remove-channel-topic
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: channelId
+          in: path
+          description: specified channel id 
+          required: true
+          schema:
+            type: string
+        - name: topicId
+          in: path
+          description: specified topic id 
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+        '401':
+          description: invalid password
+        '404':
+          description: channel not found
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+  
+  /content/channels/{channelId}/topics/{topicId}/detail:
+    get:
+      tags:
+        - content
+      description: Get detail object of topic.
+      operationId: get-channel-topic-detail
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: channelId
+          in: path
+          description: specified channel id 
+          required: true
+          schema:
+            type: string
+        - name: topicId
+          in: path
+          description: specified topic id 
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TopicDetail'
+        '401':
+          description: invalid password
+        '404':
+          description: channel not found
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+          
+  /content/channels/{channelId}/topics/{topicId}/subject/{field}:
+    get:
+      tags:
+        - content
+      description: Base64 decode and download specified field from the channel's subject. Access granted to app token of account holder or contact token of account the channel is shared with.
+      operationId: get-channel-topic-subject-field
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: channelId
+          in: path
+          description: specified channel id 
+          required: true
+          schema:
+            type: string
+        - name: topicId
+          in: path
+          description: specified topic id
+          required: true
+          schema:
+            type: string
+        - name: field
+          in: path
+          description: field from subject to base64 decode and download 
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: permission denied
+        '404':
+          description: field, channel not found
+        '405':
+          description: invalid field
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+          
+  /content/channels/{channelId}/topics/{topicId}/subject:
+    put:
+      tags:
+        - content
+      description: Set subject for channel. Access granted to app token of account holder.
+      operationId: set-channel-topic-subject
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: channelId
+          in: path
+          description: specified channel id 
+          required: true
+          schema:
+            type: string
+        - name: topicId
+          in: path
+          description: specified topic id
+          required: true
+          schema:
+            type: string
+        - name: confirm
+          in: query
+          description: confirmed state of topic
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: success
+        '401':
+          description: permission denied
+        '404':
+          description: channel not found
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Subject'
+                  
+  /content/channels/{channelId}/topics/{topicId}/assets:
+    get:
+      tags:
+        - content
+      description: Get list of assets assigned to an channel. The original assets will only be available to the account holder to provent the accidental sharing of content metadata. Access is granted to the app token of the account holder and the contact token of accounts the channel has been shared with.
+      operationId: get-channel-topic-assets
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: channelId
+          in: path
+          description: specified channel id 
+          required: true
+          schema:
+            type: string
+        - name: topicId
+          in: path
+          description: specified topic id
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: entry created
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Asset'
+        '401':
+          description: invalid token
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+    post:
+      tags:
+        - content
+      description: Add an an asset to the to an channel. The original posted asset is referenced in the asset list with a null transform. The transformed assets are referenced accordingly. Transforming the asset strips it of metadata and transcodes it into a specified format. Access is granted to the app token of the account holder.
+      operationId: add-channel-topic-asset
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: channelId
+          in: path
+          description: specified channel id 
+          required: true
+          schema:
+            type: string
+        - name: topicId
+          in: path
+          description: specified topic id
+          required: true
+          schema:
+            type: string
+        - name: transforms
+          in: query
+          description: transforms to apply
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        '201':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Asset'
+        '401':
+          description: permission denied
+        '404':
+          description: channel not found
+        '406':
+          description: storage limit reached
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                fileName:
+                  type: string
+                  format: binary
+          
+  /content/channels/{channelId}/topics/{topicId}/blocks:
+    post:
+      tags:
+        - content
+      description: Add a asset to the channel. Payload is a file block encoded as bas64 string. This is to support e2e as the client side will encrypt the file block before applying the base64 encoding.
+      operationId: add-channel-topic-block
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: channelId
+          in: path
+          description: specified channel id 
+          required: true
+          schema:
+            type: string
+        - name: topicId
+          in: path
+          description: specified topic id
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Asset'
+        '401':
+          description: permission denied
+        '404':
+          description: channel not found
+        '406':
+          description: storage limit reached
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: string
+ 
+  /content/channels/{channelId}/topics/{topicId}/assets/{assetId}:
+    get:
+      tags:
+        - content
+      description: Get asset assigned to an channel. The endpoint supports byte-range requests and responds with the content-type set appropriatly. Access granted to the app tokens of the account holder and in the case of non-original assets, the contact token for accounts with which the channel is shared.
+      operationId: get-channel-topic-asset
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: channelId
+          in: path
+          description: specified channel id 
+          required: true
+          schema:
+            type: string
+        - name: topicId
+          in: path
+          description: specified topic id
+          required: true
+          schema:
+            type: string
+        - name: assetId
+          in: path
+          description: specified asset id 
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/octet-stream: #asset specific
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: permission denied
+        '404':
+          description: asset or channel not found
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+    delete:
+      tags:
+        - content
+      description: Remove an asset from an channel. Access granted to app tokens of the account holder.
+      operationId: remove-channel-topic-asset
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: channelId
+          in: path
+          description: specified channel id 
+          required: true
+          schema:
+            type: string
+        - name: topicId
+          in: path
+          description: specified topic id
+          required: true
+          schema:
+            type: string
+        - name: assetId
+          in: path
+          description: specified asset id 
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+        '401':
+          description: permission denied
+        '404':
+          description: asset or channel not found
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+          
+  /content/channels/{channelId}/topics/{topicId}/confirmed:
+    put:
+      tags:
+        - content
+      description: Set confirmed state of the channel. Until the confirmed state has been set to true, the channel will not be visible to contacts with which the channel is shared. Access granted to the app tokens of the acocunt holder.
+      operationId: set-channel-topic-confirmed
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: channelId
+          in: path
+          description: specified channel id 
+          required: true
+          schema:
+            type: string
+        - name: topicId
+          in: path
+          description: specified topic id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+        '401':
+          description: permission denied
+        '404':
+          description: channel not found
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: string
+              
+                  
+  /content/channels/{channelId}/topics/{topicId}/tags:
+    get:
+      tags:
+        - content
+      description: Get channel topic tag slots.
+      operationId: get-channel-topic-tags
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: channelId
+          in: path
+          description: specified channel id
+          required: true
+          schema:
+            type: string
+        - name: topicId
+          in: path
+          description: specified topic id
+          required: true
+          schema:
+            type: string
+        - name: revision
+          in: query
+          description: return updated topics since revision 
+          required: false
+          schema:
+            type: integer
+            format: int64
+        - name: count
+          in: query
+          description: limit number of latest from latest when revision not set
+          required: false
+          schema:
+            type: integer
+            format: int64
+        - name: begin
+          in: query
+          description: return tags after and including sequence marker
+          required: false
+          schema:
+            type: integer
+            format: int64
+        - name: end
+          in: query
+          description: return tags before and not including sequence marker
+          required: false
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: successful operation
+          headers:
+            Tag-Revision:
+              schema:
+                type: integer
+                format: int64
+              description: current tag revision
+            Tag-Marker:
+              schema:
+                type: integer
+                format: int64
+              description: sequnce marker of first tag when count set
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Tag'
+        '401':
+          description: permission denied
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+    post:
+      tags:
+        - content
+      description: Add a tag to channel topic. 
+      operationId: add-channel-topic-tag
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: channelId
+          in: path
+          description: specified channel id
+          required: true
+          schema:
+            type: string
+        - name: topicId
+          in: path
+          description: specified topic id
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: entry created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+        '401':
+          description: permission denied
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Subject'
+          
+  /content/channels/{channelId}/topics/{topicId}/tags/{tagId}:
+    delete:
+      tags:
+        - content
+      description: Remove specified tag from channel topic. Access granted to app token of account holder.
+      operationId: remove-channel-topic-tag
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: channelId
+          in: path
+          description: specified channel id 
+          required: true
+          schema:
+            type: string
+        - name: topicId
+          in: path
+          description: specified topic id 
+          required: true
+          schema:
+            type: string
+        - name: tagId
+          in: path
+          description: specified tag id 
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+        '401':
+          description: invalid password
+        '404':
+          description: channel not found
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+  
+  /content/channels/{channelId}/topics/{topicId}/tags/{tagId}/subject/{field}:
+    get:
+      tags:
+        - content
+      description: Base64 decode and download specified field from the channel's subject. Access granted to app token of account holder or contact token of account the channel is shared with.
+      operationId: get-channel-topic-tag-subject-field
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: channelId
+          in: path
+          description: specified channel id 
+          required: true
+          schema:
+            type: string
+        - name: topicId
+          in: path
+          description: specified topic id
+          required: true
+          schema:
+            type: string
+        - name: tagId
+          in: path
+          description: specified tag id
+          required: true
+          schema:
+            type: string
+        - name: field
+          in: path
+          description: field from subject to base64 decode and download 
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: permission denied
+        '404':
+          description: field, channel not found
+        '405':
+          description: invalid field
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+          
+  /content/channels/{channelId}/topics/{topicId}/tags/{tagId}/subject:
+    put:
+      tags:
+        - content
+      description: Set subject for channel. Access granted to app token of account holder.
+      operationId: set-channel-topic-tag-subject
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: channelId
+          in: path
+          description: specified channel id 
+          required: true
+          schema:
+            type: string
+        - name: topicId
+          in: path
+          description: specified topic id
+          required: true
+          schema:
+            type: string
+        - name: tagId
+          in: path
+          description: specified tag id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+        '401':
+          description: permission denied
+        '404':
+          description: channel not found
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Subject'
+
+  /talk/calls:
+    post:
+      tags:
+        - talk
+      description: Add new call entry
+      operationId: add-call
+      parameters:
+        - name: agent
+          in: query
+          description: agent token
+          required: true
+          schema:
+            type: string
+        - name: cardId
+          in: query
+          description: id of card to call
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: entry created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Call'
+        '401':
+          description: permission denied
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: string
+
+  /talk/calls/{callId}:
+    put:
+      tags:
+        - talk
+      description: extend keep alive on specified call 
+      operationId: keep-call
+      parameters:
+        - name: agent
+          in: query
+          description: agent token
+          required: true
+          schema:
+            type: string
+        - name: callId
+          in: path
+          description: id of call to keep alive
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+        '401':
+          description: permission denied
+        '404':
+          description: call not found
+        '406':
+          description: call has already expired or closed
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+    delete:
+      tags:
+        - talk
+      description: terminte sepecified call
+      operationId: end-call
+      parameters:
+        - name: agent
+          in: query
+          description: agent token
+          required: false
+          schema:
+            type: string
+        - name: contact
+          in: query
+          description: contact token
+          required: false
+          schema:
+            type: string
+        - name: callId
+          in: path
+          description: id of call to end
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: successful operation
+        '401':
+          description: permission denied
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+      
+  /talk/ring:
+   post:
+      tags:
+        - talk
+      description: Create a ring event in contact
+      operationId: add-ring
+      parameters:
+        - name: contact
+          in: query
+          description: contact token
+          required: true
+          schema:
+            type: string
+        - name: calleeToken
+          in: query
+          description: token for the contact to connect with
+          required: true
+          schema:
+            type: string
+        - name: index
+          in: query
+          description: index of current ring
+          required: true
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '201':
+          description: entry created
+        '401':
+          description: permission denied
+        '410':
+          description: account disabled
+        '500':
+          description: internal server error
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Ring' 
+               
+  /talk/signal:
+    get:
+      tags:
+        - talk
+      description: Websocket endpoint for coordinating webrtc conversation
+      operationId: signal
+      responses:
+        '200':
+          description: Awaiting token
+               
+          
+externalDocs:
+  description: App overview
+  url: ''
+
+components:
+  schemas:
+  
+    Announce:
+      type: object
+      required:
+        - appToken
+      properties:
+        appToken:
+          type: string
+
+    LoginAccess:
+      type: object
+      required:
+        - guid
+        - appToken
+        - created
+        - pushSupported
+      properties:
+        guid:
+          type: string
+        appToken:
+          type: string
+        created:
+          type: integer
+          format: int64
+        pushSupported:
+          type: boolean
+          
+    Revision:    
+      type: object
+      required:
+        - profile
+        - article
+        - group
+        - channel
+        - card
+      properties:
+        account:
+          type: integer
+          format: int64
+        profile:
+          type: integer
+          format: int64
+        article:
+          type: integer
+          format: int64
+        group:
+          type: integer
+          format: int64
+        channel:
+          type: integer
+          format: int64
+        card:
+          type: integer
+          format: int64
+      
+    NodeConfig:
+      type: object
+      required:
+        - domain
+        - accountStorage
+      properties:
+        domain:
+          type: string
+        accountStorage:
+          type: integer
+          format: int64
+        enableImage:
+          type: boolean
+        enableAudio:
+          type: boolean
+        enableVideo:
+          type: boolean
+        keyType:
+          type: string
+        pushSupported:
+          type: boolean
+        allowUnsealed:
+          type: boolean
+        transformSupported:
+          type: boolean
+        enableIce:
+          type: boolean
+        iceService:
+          type: string
+        iceUrl:
+          type: string
+        iceUsername:
+          type: string
+        icePassword:
+          type: string
+        enableOpenAccess:
+          type: boolean
+        openAccessLimit:
+          type: integer
+          format: int64
+        
+ 
+    Seal:
+      type: object
+      required:
+        - salt
+        - privateKeyEncrypted
+        - publicKey
+      properties:
+        passwordSalt:
+          type: string
+          format: hex encoded data
+        privateKeyIv:
+          type: string
+          format: hex encoded data
+        privateKeyEncrypted:
+          type: string
+          format: base64 encoded data
+        publicKey:
+          type: string
+          format: base64 encoded data
+          
+    AccountStatus:
+      type: object
+      required:
+        - disabled
+        - storageUsed
+        - storageAvailable
+        - forwardingAddress
+        - searchable
+        - pushEnabled
+        - multiFactorAuth
+        - webServerKey
+      properties:
+        disabled:
+          type: boolean
+        storageUsed:
+          type: integer
+          format: int64
+        storageAvailable:
+          type: integer
+          format: int64
+        forwardingAddress:
+          type: string
+        searchable:
+          type: boolean
+        allowUnsealed:
+          type: boolean
+        pushEnabled:
+          type: boolean
+        sealable:
+          type: boolean
+        seal:
+          $ref: '#/components/schemas/Seal'
+        enableIce:
+          type: boolean
+        multiFactorAuth:
+          type: boolean
+        webPushKey:
+          type: string
+ 
+    AccountProfile:
+      type: object
+      required:
+        - guid
+        - revision
+        - node
+      properties:
+        accountId:
+          type: integer
+          format: uint32
+        guid:
+          type: string
+        handle:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        location:
+          type: string
+        imageSet:
+          type: boolean
+        disabled:
+          type: boolean
+        seal:
+          type: string
+        storageUsed:
+          type: integer
+          format: int64
+          
+    Profile:
+      type: object
+      required:
+        - guid
+        - revision
+        - node
+      properties:
+        guid:
+          type: string
+        handle:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        location:
+          type: string
+        image:
+          type: string
+          format: base64 encoded data
+        revision:
+          type: integer
+          format: int64
+        seal:
+          type: string
+          format: base64 encoded data
+        version:
+          type: string
+        node:
+          type: string
+          
+    ProfileData:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        location:
+          type: string
+          
+    Account:
+      type: object
+      required:
+        - accountId
+        - disabled
+      properties:
+        accountId:
+          type: integer
+          format: uint32
+        guid:
+          type: string
+        handle:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        location:
+          type: string
+        imageSet:
+          type: boolean
+        disabled:
+          type: boolean
+        
+    App:
+      type: object
+      required:
+        - id
+        - revision
+        - data
+      properties:
+        id:
+          type: string
+        revision:
+          type: integer
+          format: int64
+        data:
+          $ref: '#/components/schemas/AppData'
+          
+    AppData:
+      type: object
+      required:
+        - attached
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        url:
+          type: string
+        image:
+          type: string
+          format: base64 encoded image
+        attached:
+          type: integer
+          format: int64
+          
+    Card:
+      type: object
+      required:
+        - id
+        - revision
+        - data
+      properties:
+        id:
+          type: string
+        revision:
+          type: integer
+          format: int64
+        data:
+          $ref: '#/components/schemas/CardData'
+        
+    CardData:
+      type: object
+      required:
+        - detailRevision
+        - profileRevision
+        - notifiedProfile
+        - notifiedArticle
+        - notifiedChannel
+        - notifiedView
+      properties:
+        detailRevision:
+          type: integer
+          format: int64
+        profileRevision:
+          type: integer
+          format: int64
+        notifiedProfile:
+          type: integer
+          format: int64
+        notifiedArticle:
+          type: integer
+          format: int64
+        notifiedChannel:
+          type: integer
+          format: int64
+        notifiedView:
+          type: integer
+          format: int64
+        cardDetail:
+          $ref: '#/components/schemas/CardDetail'
+        cardProfile:
+          $ref: '#/components/schemas/CardProfile'
+      
+    CardProfile:
+      type: object
+      required:
+        - guid
+        - node
+      properties:
+        guid:
+          type: string
+        handle:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        location:
+          type: string
+        imageSet:
+          type: boolean
+        version:
+          type: string
+        node:
+          type: string
+        seal:
+          type: string
+        revision:
+          type: integer
+          format: int64
+          
+    CardDetail:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [ pending, confirmed, requested, connecting, connected ]
+        statusUpdated:
+          type: integer
+          format: int64
+        token:
+          type: string
+        notes:
+          type: string
+        groups:
+          type: array
+          items:
+            type: string
+            
+    Group:
+      type: object
+      required:
+        - id
+        - revision
+        - data
+      properties:
+        id:
+          type: string
+        revision:
+          type: integer
+          format: int64
+        data:
+          $ref: '#/components/schemas/GroupData'
+          
+    GroupData:
+      type: object
+      required:
+        - dataType
+        - data
+        - created
+        - updated
+      properties:
+        dataType:
+          type: string
+        data:
+          type: string
+        created:
+          type: integer
+          format: int64
+        updated:
+          type: integer
+          format: int64
+
+    ChannelParams:
+      type: object
+      required:
+        - dataType
+        - data
+        - groups
+        - cards
+      properties:
+        dataType:
+          type: string
+        data:
+          type: string
+        groups:
+          type: array
+          items:
+            type: string
+        cards:
+          type: array
+          items:
+            type: string
+
+    Channel:
+      type: object
+      required:
+        - id
+        - revision
+        - data
+      properties:
+        id:
+          type: string
+        revision:
+          type: integer
+          format: int64
+        data:
+          $ref: '#/components/schemas/ChannelData'
+          
+    ChannelData:
+      type: object
+      required:
+        - detailRevision
+        - topicRevision
+      properties:
+        detailRevision:
+          type: integer
+          format: int64
+        topicRevision:
+          type: integer
+          format: int64
+        channelSummary:
+          $ref: '#/components/schemas/ChannelSummary'
+        channelDetail:
+          $ref: '#/components/schemas/ChannelDetail'
+          
+    ChannelDetail:
+      type: object
+      required:
+        - dataType
+        - data
+        - created
+        - updated
+      properties:
+        dataType:
+          type: string
+        data:
+          type: string
+        created:
+          type: integer
+          format: int64
+        updated:
+          type: integer
+          format: int64
+        enableImage:
+          type: boolean
+        enableAudio:
+          type: boolean
+        enableVideo:
+          type: boolean
+        contacts:
+          $ref: '#/components/schemas/ChannelContacts'
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChannelMember'
+            
+    ChannelSummary:
+      type: object
+      properties:
+        lastTopic:
+          $ref: '#/components/schemas/TopicDetail'
+          
+    ChannelContacts:
+      type: object
+      required:
+        - groups
+        - cards
+      properties:
+        groups:
+          type: array
+          items:
+            type: string
+        cards:
+          type: array
+          items:
+            type: string
+      
+    ChannelMember:
+      type: object
+      required:
+        - members
+      properties:
+        member:
+          type: string
+        pushEnabled:
+          type: boolean
+    
+    Topic:
+      type: object
+      required:
+        - id
+        - revision
+        - data
+      properties:
+        id:
+          type: string
+        revision:
+          type: integer
+          format: int64
+        data:
+          $ref: '#/components/schemas/TopicData'
+    
+    TopicData:
+      type: object
+      required:
+        - detailRevision
+        - tagRevision
+      properties:
+        detailRevision:
+          type: integer
+          format: int64
+        tagRevision:
+          type: integer
+          format: int64
+        topicDetail:
+          $ref: '#/components/schemas/TopicDetail'
+          
+    TopicDetail:
+      type: object
+      required:
+        - guid
+        - dataType
+        - data
+        - created
+        - updated
+        - status
+      properties:
+        guid:
+          type: string
+        dataType:
+          type: string
+        data:
+          type: string
+        created:
+          type: integer
+          format: int64
+        updated:
+          type: integer
+          format: int64
+        status:
+          type: string
+          enum: [ unconfirmed, confirmed ]
+        transform:
+          type: string
+          enum: [ complete, incomplete ]
+          
+    Tag:
+      type: object
+      required:
+        - id
+        - revision
+        - data
+      properties:
+        id:
+          type: string
+        revision:
+          type: integer
+          format: int64
+        data:
+          $ref: '#/components/schemas/TagData'
+        
+    TagData:
+      type: object
+      required:
+        - guid
+        - dataType
+        - data
+        - created
+        - updated
+      properties:
+        guid:
+          type: string
+        dataType:
+          type: string
+        data:
+          type: string
+        created:
+          type: integer
+          format: int64
+        updated:
+          type: integer
+          format: int64
+          
+    Article:
+      type: object
+      required:
+        - id
+        - revision
+        - data
+      properties:
+        id:
+          type: string
+        revision:
+          type: integer
+          format: int64
+        data:
+          $ref: '#/components/schemas/ArticleData'
+        
+    ArticleData:
+      type: object
+      required:
+        - dataType
+        - data
+        - created
+        - updated
+        - status
+      properties:
+        dataType:
+          type: string
+        data:
+          type: string
+        created:
+          type: integer
+          format: int64
+        updated:
+          type: integer
+          format: int64
+        status:
+          type: string
+          enum: [ unconfirmed, confirmed, incomplete, error ]
+        groups:
+          $ref: '#/components/schemas/ArticleGroups'
+          
+    ArticleGroups:
+      type: object
+      required:
+        - groups
+      properties:
+        groups:
+          type: array
+          items:
+            type: string
+          
+    Asset:
+      type: object
+      required:
+        - assetId
+      properties:
+        assetId:
+          type: string
+        transform:
+          type: string
+        status:
+          type: string
+          enum: [ pending, processing, importing, ready, error ]
+          
+    Subject:
+      type: object
+      required:
+        - dataType
+        - data
+      properties:
+        dataType:
+          type: string
+        data:
+          type: string
+          
+    Claim:
+      type: object
+      required: 
+        - token
+      properties:
+        token:
+          type: string
+          
+    Identity:
+      type: object
+      required:
+        - revision
+        - version
+        - node
+      properties:
+        revision:
+          type: integer
+          format: int64
+        handle:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        location:
+          type: string
+        image:
+          type: string
+          format: base64 encoded image
+        version:
+          type: string
+        node:
+          type: string
+        seal:
+          type: string    
+      
+    Connect:
+      type: object
+      required:
+        - contact
+        - token
+      properties:
+        contact:
+          type: string
+        token:
+          type: string
+        viewRevision:
+          type: integer
+          format: int64
+        articleRevision:
+          type: integer
+          format: int64
+        profileRevision:
+          type: integer
+          format: int64
+        handle:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        location:
+          type: string
+        image:
+          type: string
+          format: base64 encoded image
+        version:
+          type: string
+        seal:
+          type: string
+        node:
+          type: string
+          
+    Disconnect:
+      type: object
+      required:
+        - contact
+      properties:
+        contact:
+          type: string
+    
+    SignedData:
+      type: object
+      required:
+        - guid
+        - timestamp
+        - messageType
+        - value
+      properties:
+        guid:
+          type: string
+        timestamp:
+          type: integer
+          format: int64
+        messageType:
+          type: string
+          enum: [Connect, Disconnect, Identity, Authenticate]
+        value:
+          type: string
+          format: json string of Connect, Disconnect, Authenticate, or Profile
+          
+    ContactStatus:
+      type: object
+      required:
+        - status
+      properties:
+        token:
+          type: string
+        profileRevision:
+          type: integer
+          format: int64
+        articleRevision:
+          type: integer
+          format: int64
+        channelRevision:
+          type: integer
+          format: int64
+        viewRevision:
+          type: integer
+          format: int64
+        status:
+          type: string
+          enum: [ pending, confirmed, requested, connecting, connected ]
+          
+    DataMessage:
+      type: object
+      required:
+        - message
+        - keyType
+        - publicKey
+        - signature
+        - signatureType
+      properties:
+        message:
+          type: string
+          format: base64 encoded json string of SignedData
+        keyType:
+          type: string
+          enum: [RSA4096, RSA2048]
+        publicKey:
+          type: string
+          format: base64 encoding of account public key
+        signature:
+          type: string
+          format: base64 encoding of message signature
+        signatureType:
+          type: string
+          enum: [PKCS1v15, PSS]
+          
+    Call:
+      type: object
+      required:
+        - id
+        - cardId
+        - callerToken
+        - calleeToken
+        - keepAlive
+      properties:
+        id:
+          type: string
+        cardId:
+          type: string
+        callerToken:
+          type: string
+        calleeToken:
+          type: string
+        keepAlive:
+          type: integer
+          format: int32
+        iceService:
+          type: string
+        iceUrl:
+          type: string
+        iceUsername:
+          type: string
+        icePassword:
+          type: string
+
+    IceUrl:
+      tyle: object
+      required:
+        - urls
+        - username
+        - credential
+      properties:
+        urls:
+          type: string
+        username:
+          type: string
+        credential:
+          type: string
+ 
+    Ring:
+      type: object
+      required:
+        - callId
+        - calleeToken
+        - index
+      properties:
+        callId:
+          type: string
+        calleeToken:
+          type: string
+        index:
+          type: integer
+          format: int32
+        ice:
+          type: array
+            items:
+              $ref: '#/components/schemas/IceUrl'
+        iceUrl:
+          type: string
+        iceUsername:
+          type: string
+        icePassword:
+          type: string
+            
+  securitySchemes:
+  
+    basicAuth:
+      type: http
+      scheme: basic
+  
+    basicCredentials:
+      type: http
+      scheme: basic 
+
+    bearerAuth: 
+      type: http
+      scheme: bearer
+
+

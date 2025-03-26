@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+
+  CI:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node
+      uses: actions/setup-node@v3
+      with:
+        node-version: 20
+
+    - name: Build React
+      run: |
+          npm install --global yarn
+          cd net/web
+          yarn install
+          yarn build
+
+    - name: Setup Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: 1.18.10
+
+    - name: Build Go
+      run: |
+          cd net/server
+          go build databag
+          
+    - name: Go Test
+      run: |
+          cd net/server
+          go test -v ./...
+          
+    - name: Jest Setup
+      uses: actions/setup-node@v3
+      with:
+        node-version: 20
+
+    - name: Jest ReactJs
+      run: |
+          cd net/web
+          yarn jest --silent
+  
+    - name: Jest ReactNative
+      run: |
+          cd app/mobile
+          yarn install
+          yarn jest
+
+    - name: Test SDK
+      run: |
+          cd app/sdk
+          yarn install
+          yarn build
+          yarn test --silent
+          
+    - name: Build WebApp
+      run: |
+          cd app/client/web
+          yarn install
+          yarn build
+          
+    - name: Export
+      uses: actions/upload-artifact@v4
+      with:
+        name: webapp
+        path: net/web/build/*
