@@ -1,6 +1,6 @@
 import { Appearance } from 'react-native'
 
-const LightColors = {
+let LightColors = {
   theme: 'light',
   overlay: 'dark',
   statusBar: 'dark-content',
@@ -65,7 +65,7 @@ const LightColors = {
   unsaved: '#888888',
 };
 
-const DarkColors = {
+let DarkColors = {
   theme: 'dark',
   overlay: 'dark',
   statusBar: 'light-content',
@@ -134,7 +134,7 @@ function getColor(label) {
   return Appearance.getColorScheme() === 'dark' ? DarkColors[label] : LightColors[label];
 }
 
-export const Colors = {
+export let Colors = {
   theme: getColor('theme'),
   tabBar: getColor('tabBar'),
   activeTabIcon: getColor('activeTabIcon'),
