@@ -6,7 +6,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 export function useLogin() {
 
-  const [state, setState] = useState({
+  var [state, setState] = useState({
     username: '',
     password: '',
     available: false,
@@ -20,16 +20,16 @@ export function useLogin() {
     mfaError: null,
   });
 
-  const navigate = useNavigate();
-  const { search } = useLocation();
-  const app = useContext(AppContext);
-  const settings = useContext(SettingsContext);
+  var navigate = useNavigate();
+  var { search } = useLocation();
+  var app = useContext(AppContext);
+  var settings = useContext(SettingsContext);
 
-  const updateState = (value) => {
+  var updateState = (value) => {
     setState((s) => ({ ...s, ...value }));
   }
 
-  const actions = {
+  var actions = {
     setUsername: (username) => {
       updateState({ username });
     },
@@ -52,7 +52,7 @@ export function useLogin() {
           await app.actions.login(state.username, state.password, state.mfaCode)
         }
         catch (err) {
-          const msg = err?.message;
+          var msg = err?.message;
           if (msg === '405' || msg === '403' || msg === '429') {
             updateState({ busy: false, mfaModal: true, mfaError: msg });
           }
@@ -77,9 +77,9 @@ export function useLogin() {
   };
 
   useEffect(() => {
-    const count = async () => {
+    var count = async () => {
       try {
-        const available = await getAvailable()
+        var available = await getAvailable()
         updateState({ availableSet: true, available: available !== 0 })
       }
       catch(err) {
@@ -91,11 +91,11 @@ export function useLogin() {
   }, [])
 
   useEffect(() => {
-    const { strings, menuStyle } = settings.state;
+    var { strings, menuStyle } = settings.state;
     updateState({ strings, menuStyle });
   }, [settings.state]);
 
-  const access =  async (token) => {
+  var access =  async (token) => {
     if (!state.busy) {
       updateState({ busy: true });
       try {
