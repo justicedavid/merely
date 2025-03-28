@@ -1,6 +1,6 @@
 import styled from 'styled-components';
 
-export const ChannelsWrapper = styled.div`
+export let ChannelsWrapper = styled.div`
   height: 100%;
   width: 100%;
   display: flex;
