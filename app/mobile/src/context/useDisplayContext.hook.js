@@ -1,16 +1,16 @@
 import { useEffect, useContext, useState, useRef } from 'react';
 
 export function useDisplayContext() {
-  const [state, setState] = useState({
+  let [state, setState] = useState({
     prompt: null,
     alert: null,
   });
 
-  const updateState = (value) => {
+  let updateState = (value) => {
     setState((s) => ({ ...s, ...value }))
   }
 
-  const actions = {
+  let actions = {
     showPrompt: (prompt) => {
       updateState({ prompt });
     },
