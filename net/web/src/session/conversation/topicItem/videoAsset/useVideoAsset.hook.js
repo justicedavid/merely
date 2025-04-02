@@ -2,10 +2,10 @@ import { useState, useRef } from 'react';
 
 export function useVideoAsset(asset) {
 
-  const revoke = useRef();
-  const index = useRef(0);
+  let revoke = useRef();
+  let index = useRef(0);
 
-  const [state, setState] = useState({
+  let [state, setState] = useState({
     width: 0,
     height: 0,
     active: false,
@@ -18,18 +18,18 @@ export function useVideoAsset(asset) {
     total: 0,
   });
 
-  const updateState = (value) => {
+  let updateState = (value) => {
     setState((s) => ({ ...s, ...value }));
   }
 
-  const actions = {
+  let actions = {
     setActive: async (width, height) => {
       if (asset.encrypted) {
         try {
-          const view = index.current;
+          let view = index.current;
           updateState({ active: true, width, height, error: false, loaded: false, loading: true, url: null });
-          const blob = await asset.getDecryptedBlob(() => view !== index.current, (block, total) => updateState({ block, total }));
-          const url = URL.createObjectURL(blob);
+          let blob = await asset.getDecryptedBlob(() => view !== index.current, (block, total) => updateState({ block, total }));
+          let url = URL.createObjectURL(blob);
           revoke.current = url;
           updateState({ url, loading: false });
         }
