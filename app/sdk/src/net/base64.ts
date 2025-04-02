@@ -1,7 +1,7 @@
 export function encode(input: string) {
-  let output = '';
-  let chr1, chr2, chr3, enc1, enc2, enc3, enc4;
-  let i = 0;
+  var output = '';
+  var chr1, chr2, chr3, enc1, enc2, enc3, enc4;
+  var i = 0;
 
   const _keyStr = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
 
@@ -31,10 +31,10 @@ export function encode(input: string) {
 
 function _utf8_encode(value: string) {
   value = value.replace(/\r\n/g, '\n');
-  let utftext = '';
+  var utftext = '';
 
-  for (let n = 0; n < value.length; n++) {
-    let c = value.charCodeAt(n);
+  for (var n = 0; n < value.length; n++) {
+    var c = value.charCodeAt(n);
 
     if (c < 128) {
       utftext += String.fromCharCode(c);
