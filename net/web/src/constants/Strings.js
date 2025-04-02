@@ -1,4 +1,4 @@
-export let en = {
+export const en = {
   code: 'en',
   settings: 'Settings',
   contacts: 'Contacts',
@@ -207,7 +207,7 @@ export let en = {
   disablePrompt: 'Are you sure you want to disable multi-factor authentication',
 };
 
-export let fr = {
+export const fr = {
   code: 'fr',
   settings: 'Paramètres',
   contacts: 'Contacts',
@@ -417,7 +417,7 @@ export let fr = {
   disablePrompt: 'Êtes-vous sûr de vouloir désactiver l\'authentification multi-facteurs',
 };
 
-export let sp = {
+export const sp = {
   code: 'sp',
   settings: 'Configuración',
   contacts: 'Contactos',
@@ -626,7 +626,7 @@ export let sp = {
   disablePrompt: '¿Estás seguro de que quieres desactivar la autenticación de dos factores?',
 };
 
-export let pt = {
+export const pt = {
   code: 'pt',
   settings: 'Configurações',
   contacts: 'Contatos',
@@ -835,7 +835,7 @@ export let pt = {
   disablePrompt: 'Tem certeza de que deseja desativar a autenticação de dois fatores?',
 };
 
-export let de = {
+export const de = {
   code: 'de',
   settings: 'Einstellungen',
   contacts: 'Kontakte',
@@ -1044,7 +1044,7 @@ export let de = {
   disablePrompt: 'Sind Sie sicher, dass Sie die Zwei-Faktor-Authentifizierung deaktivieren möchten?',
 };
 
-export let ru = {
+export const ru = {
   code: 'ru',
   settings: 'Настройки',
   contacts: 'Контакты',
@@ -1253,7 +1253,7 @@ export let ru = {
   disablePrompt: 'Вы уверены, что хотите отключить двухфакторную аутентификацию?',
 };
 
-export let el = {
+export const el = {
   code: 'el',
   settings: 'Ρυθμίσεις',
   contacts: 'Επαφές',
