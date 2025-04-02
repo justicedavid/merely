@@ -11,7 +11,7 @@ import { getLanguageStrings } from 'constants/Strings';
 
 export function useAddTopic(contentKey) {
 
-  const [state, setState] = useState({
+  var [state, setState] = useState({
     strings: getLanguageStrings(),
     message: null,
     assets: [],
@@ -32,16 +32,16 @@ export function useAddTopic(contentKey) {
     conflict: false,
   });
 
-  const SCALE_SIZE = (128 * 1024);
-  const GIF_TYPE = 'image/gif';
-  const WEBP_TYPE = 'image/webp';
+  var SCALE_SIZE = (128 * 1024);
+  var GIF_TYPE = 'image/gif';
+  var WEBP_TYPE = 'image/webp';
 
-  const assetId = useRef(0);
-  const conversation = useContext(ConversationContext);
-  const account = useContext(AccountContext);
-  const upload = useContext(UploadContext);
+  var assetId = useRef(0);
+  var conversation = useContext(ConversationContext);
+  var account = useContext(AccountContext);
+  var upload = useContext(UploadContext);
 
-  const updateState = (value) => {
+  var updateState = (value) => {
     setState((s) => ({ ...s, ...value }));
   }
 
@@ -69,11 +69,11 @@ export function useAddTopic(contentKey) {
   }, [contentKey]);
 
   useEffect(() => {
-    const cardId = conversation.state.card?.card?.cardId;
-    const channelId = conversation.state.channel?.channelId;
-    const key = cardId ? `${cardId}:${channelId}` : `:${channelId}`
+    var cardId = conversation.state.card?.card?.cardId;
+    var channelId = conversation.state.channel?.channelId;
+    var key = cardId ? `${cardId}:${channelId}` : `:${channelId}`
 
-    const progress = upload.state.progress.get(key);
+    var progress = upload.state.progress.get(key);
     if (progress) {
       let count = 0;
       let complete = 0;
@@ -109,24 +109,24 @@ export function useAddTopic(contentKey) {
   }, [upload.state, conversation.state]);
 
   useEffect(() => {
-    const { enableVideo, enableAudio, enableImage, enableBinary } = conversation.state.channel?.detail || {};
-    const locked = conversation.state.channel?.detail?.dataType === 'superbasic' ? false : true;
-    const loaded = conversation.state.loaded;
+    var { enableVideo, enableAudio, enableImage, enableBinary } = conversation.state.channel?.detail || {};
+    var locked = conversation.state.channel?.detail?.dataType === 'superbasic' ? false : true;
+    var loaded = conversation.state.loaded;
     updateState({ enableImage, enableAudio, enableVideo, enableBinary, locked, loaded });
   }, [conversation.state]);
 
-  const setAsset = async (file, mime, scale) => {
-    const url = file.startsWith('file:') ? file : `file://${file}`;
+  var setAsset = async (file, mime, scale) => {
+    var url = file.startsWith('file:') ? file : `file://${file}`;
 
     if (contentKey) {
-      const orig = await RNFS.stat(url);
-      const scaled = (scale && orig.size > SCALE_SIZE && (mime !== GIF_TYPE && mime !== WEBP_TYPE)) ? await scale(url) : url;
-      const stat = await RNFS.stat(scaled);
-      const getEncryptedBlock = async (pos, len) => {
+      var orig = await RNFS.stat(url);
+      var scaled = (scale && orig.size > SCALE_SIZE && (mime !== GIF_TYPE && mime !== WEBP_TYPE)) ? await scale(url) : url;
+      var stat = await RNFS.stat(scaled);
+      var getEncryptedBlock = async (pos, len) => {
         if (pos + len > stat.size) {
           return null;
         }
-        const block = await RNFS.read(scaled, len, pos, 'base64');
+        var block = await RNFS.read(scaled, len, pos, 'base64');
         return encryptBlock(block, contentKey);
       }
       return { data: url, encrypted: true, size: stat.size, getEncryptedBlock };
@@ -136,14 +136,14 @@ export function useAddTopic(contentKey) {
     }
   }
 
-  const actions = {
+  var actions = {
     setMessage: (message) => {
       updateState({ message });
     },
     addImage: async (data, mime) => {
       assetId.current++;
-      const asset = await setAsset(data, mime, async (file) => {
-        const scaled = await ImageResizer.createResizedImage(file, 512, 512, "JPEG", 90, 0, null);
+      var asset = await setAsset(data, mime, async (file) => {
+        var scaled = await ImageResizer.createResizedImage(file, 512, 512, "JPEG", 90, 0, null);
         return `file://${scaled.path}`;
       });
       asset.key = assetId.current;
@@ -154,7 +154,7 @@ export function useAddTopic(contentKey) {
     },
     addVideo: async (data) => {
       assetId.current++;
-      const asset = await setAsset(data);
+      var asset = await setAsset(data);
       asset.key = assetId.current;
       asset.type = 'video';
       asset.position = 0;
@@ -163,7 +163,7 @@ export function useAddTopic(contentKey) {
     },
     addAudio: async (data, label) => {
       assetId.current++;
-      const asset = await setAsset(data);
+      var asset = await setAsset(data);
       asset.key = assetId.current;
       asset.type = 'audio';
       asset.label = label;
@@ -171,7 +171,7 @@ export function useAddTopic(contentKey) {
     },
     addBinary: async (data, name) => {
       assetId.current++;
-      const asset = await setAsset(data);
+      var asset = await setAsset(data);
       asset.key = assetId.current;
       asset.type = 'binary';
       asset.extension = name.split('.').pop().toUpperCase();
@@ -232,7 +232,7 @@ export function useAddTopic(contentKey) {
         try {
           updateState({ busy: true });
          
-          const assemble = (assets) => {
+          var assemble = (assets) => {
             if (!state.locked) {
               return {
                 assets: assets?.length ? assets : null,
@@ -242,7 +242,7 @@ export function useAddTopic(contentKey) {
               }
             }
             else {
-              const message = {
+              var message = {
                 assets: assets?.length ? assets : null,
                 text: state.message,
                 textColor: state.textColorSet ? state.textColor : null,
@@ -251,7 +251,7 @@ export function useAddTopic(contentKey) {
               return encryptTopicSubject({ message }, contentKey);
             }
           };
-          const type = state.locked ? "sealedtopic" : "superbasictopic";
+          var type = state.locked ? "sealedtopic" : "superbasictopic";
           await conversation.actions.addTopic(type, assemble, state.assets);
           updateState({ busy: false, assets: [], message: null,
             size: 'medium', sizeSet: false, textSize: 14,
