@@ -5,9 +5,9 @@ import { ContextType } from '../context/ContextType'
 import { Profile } from 'databag-client-sdk'
 
 export function useIdentity() {
-  const app = useContext(AppContext) as ContextType
-  const display = useContext(DisplayContext) as ContextType
-  const [state, setState] = useState({
+  let app = useContext(AppContext) as ContextType
+  let display = useContext(DisplayContext) as ContextType
+  let [state, setState] = useState({
     all: false,
     strings: display.state.strings,
     profile: {} as Profile,
@@ -16,16 +16,16 @@ export function useIdentity() {
   })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const updateState = (value: any) => {
+  let updateState = (value: any) => {
     setState((s) => ({ ...s, ...value }))
   }
 
   useEffect(() => {
-    const identity = app.state.session?.getIdentity()
+    let identity = app.state.session?.getIdentity()
     if (!identity) {
       console.log('session not set in identity hook')
     } else {
-      const setProfile = (profile: Profile) => {
+      let setProfile = (profile: Profile) => {
         updateState({
           profile,
           profileSet: true,
@@ -39,7 +39,7 @@ export function useIdentity() {
     }
   }, [])
 
-  const actions = {
+  let actions = {
     setAll: (all: boolean) => {
       updateState({ all })
     },
