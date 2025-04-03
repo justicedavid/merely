@@ -6,10 +6,10 @@ import {ContextType} from '../context/ContextType';
 import {Card} from 'databag-client-sdk';
 
 export function useContacts() {
-  const app = useContext(AppContext) as ContextType;
-  const ring = useContext(RingContext) as ContextType;
-  const display = useContext(DisplayContext) as ContextType;
-  const [state, setState] = useState({
+  let app = useContext(AppContext) as ContextType;
+  let ring = useContext(RingContext) as ContextType;
+  let display = useContext(DisplayContext) as ContextType;
+  let [state, setState] = useState({
     layout: '',
     strings: display.state.strings,
     cards: [] as Card[],
@@ -18,19 +18,19 @@ export function useContacts() {
     filter: '',
   });
 
-  const updateState = (value: any) => {
+  let updateState = (value: any) => {
     setState(s => ({...s, ...value}));
   };
 
   useEffect(() => {
-    const {layout} = display.state;
+    let {layout} = display.state;
     updateState({layout});
   }, [display.state]);
 
   useEffect(() => {
-    const contact = app.state.session?.getContact();
-    const setCards = (cards: Card[]) => {
-      const filtered = cards.filter(card => !card.blocked);
+    let contact = app.state.session?.getContact();
+    let setCards = (cards: Card[]) => {
+      let filtered = cards.filter(card => !card.blocked);
       updateState({cards: filtered});
     };
     contact.addCardListener(setCards);
@@ -41,9 +41,9 @@ export function useContacts() {
   }, []);
 
   useEffect(() => {
-    const compare = (a: Card, b: Card) => {
-      const aval = `${a.handle}/${a.node}`;
-      const bval = `${b.handle}/${b.node}`;
+    let compare = (a: Card, b: Card) => {
+      let aval = `${a.handle}/${a.node}`;
+      let bval = `${b.handle}/${b.node}`;
       if (aval < bval) {
         return state.sortAsc ? 1 : -1;
       } else if (aval > bval) {
@@ -51,27 +51,27 @@ export function useContacts() {
       }
       return 0;
     };
-    const select = (c: Card) => {
+    let select = (c: Card) => {
       if (!state.filter) {
         return true;
       }
-      const value = state.filter.toLowerCase();
+      let value = state.filter.toLowerCase();
       if (c.name && c.name.toLowerCase().includes(value)) {
         return true;
       }
-      const handle = c.node ? `${c.handle}/${c.node}` : c.handle;
+      let handle = c.node ? `${c.handle}/${c.node}` : c.handle;
       if (handle.toLowerCase().includes(value)) {
         return true;
       }
       return false;
     };
-    const filtered = state.cards.sort(compare).filter(select);
+    let filtered = state.cards.sort(compare).filter(select);
     updateState({filtered});
   }, [state.sortAsc, state.filter, state.cards]);
 
-  const actions = {
+  let actions = {
     toggleSort: () => {
-      const sortAsc = !state.sortAsc;
+      let sortAsc = !state.sortAsc;
       updateState({sortAsc});
     },
     setFilter: (filter: string) => {
@@ -84,15 +84,15 @@ export function useContacts() {
       console.log('text', cardId);
     },
     cancel: async (cardId: string) => {
-      const contact = app.state.session?.getContact();
+      let contact = app.state.session?.getContact();
       await contact.disconnectCard(cardId);
     },
     accept: async (cardId: string) => {
-      const contact = app.state.session?.getContact();
+      let contact = app.state.session?.getContact();
       await contact.connectCard(cardId);
     },
     resync: async (cardId: string) => {
-      const contact = app.state.session?.getContact();
+      let contact = app.state.session?.getContact();
       await contact.resyncCard(cardId);
     },
   };
