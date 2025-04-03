@@ -4,23 +4,23 @@ import {AppContext} from '../context/AppContext';
 import {ContextType} from '../context/ContextType';
 
 export function useWelcome() {
-  const app = useContext(AppContext) as ContextType;
-  const display = useContext(DisplayContext) as ContextType;
-  const [state, setState] = useState({
+  let app = useContext(AppContext) as ContextType;
+  let display = useContext(DisplayContext) as ContextType;
+  let [state, setState] = useState({
     strings: display.state.strings,
     showWelcome: null as null | boolean,
   });
 
-  const updateState = (value: any) => {
+  let updateState = (value: any) => {
     setState(s => ({...s, ...value}));
   };
 
   useEffect(() => {
-    const showWelcome = app.state.showWelcome;
+    let showWelcome = app.state.showWelcome;
     updateState({showWelcome});
   }, [app.state]);
 
-  const actions = {
+  let actions = {
     clearWelcome: async () => {
       await app.actions.setShowWelcome(false);
     },
